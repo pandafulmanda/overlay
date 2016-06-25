@@ -28,6 +28,7 @@
              <script src="TrackballControls.js"></script>
              <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.js"></script>
              <script src="https://rawgit.com/dataarts/dat.gui/master/build/dat.gui.min.js"></script>
+             <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.13.1/lodash.min.js"></script>
 
              <script>
              //if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -171,6 +172,36 @@
                 }
 
 
+                var make_gradient = function(mesh_options){
+
+                    var colorgrad = d3.scale.linear()
+                        .domain([mesh_options.vmin, mesh_options.vmax])//[_.min(face_metrics), _.max(face_metrics)])
+                        .range([mesh_options.colormin, mesh_options.colormax]);
+
+                    return colorgrad;
+                }
+
+                var cache_by_gradient_options = function(mesh_options){
+                    var gradient_options = _.pick(mesh_options, 'vmin', 'vmax', 'colormin', 'colormax');
+                    return _.values(gradient_options).join('-');
+                }
+
+                var cache_by_value_and_gradient_options = function(value, mesh_options){
+                    return value + cache_by_gradient_options(mesh_options);
+                }
+
+                var get_gradient = _.memoize(make_gradient, cache_by_gradient_options);
+
+                var make_color_with_options = function(value, mesh_options){
+                    var colorgrad = get_gradient(mesh_options)
+                    var color = new THREE.Color(colorgrad(value))
+
+                    return color;
+                }
+
+                var get_color_with_options = _.memoize(make_color_with_options, cache_by_value_and_gradient_options)
+
+
                 // Color brain depends on face_metrics being calculated once on initialization.
                 // This means that on change from the gui, color brain will only be going over each
                 // of the faces in the geometry and looking up what color it should set that face to.
@@ -181,14 +212,15 @@
                     var key = mesh_options.key
                     var face_metrics = mesh.face_metrics[key]
 
-                    var colorgrad = d3.scale.linear()
-                        .domain([mesh_options.vmin, mesh_options.vmax])//[_.min(face_metrics), _.max(face_metrics)])
-                        .range([mesh_options.colormin, mesh_options.colormax]);
+                    // var colorgrad = d3.scale.linear()
+                    //     .domain([mesh_options.vmin, mesh_options.vmax])//[_.min(face_metrics), _.max(face_metrics)])
+                    //     .range([mesh_options.colormin, mesh_options.colormax]);
 
                     mesh.geometry.faces.forEach(function(element, index){
 
                         if (face_metrics[index] > mesh_options.threshold){
-                            var col = new THREE.Color(colorgrad(face_metrics[index]))
+                            // var col = new THREE.Color(colorgrad(face_metrics[index]))
+                            var col = get_color_with_options(face_metrics[index], mesh_options)
                             element.color.setRGB(col.r, col.g, col.b)
                         } else {
                             // Undo the color setting by setting it back to white.
@@ -268,7 +300,7 @@
                                         // keys are done, color brain.
                                         calculateFaceMetrics(mesh, color_brain)
                                         initialize_gui(mesh)
-                                        
+                                        window.Hello = mesh
                  						
                  						scene.add(mesh);
                  						meshes.push(mesh)
