@@ -168,9 +168,6 @@
                             }
 
                             mesh.face_metrics[key] = mesh.geometry.faces.map(function(element, index){
-                                var vals = parseFloat(csv[element["a"]][key]) + parseFloat(csv[element["b"]][key]) + parseFloat(csv[element["c"]][key])
-                                //vals is the average value of the "key"(travel depth, geodesic depth, etc) for the 3 vertices of the face
-                                // anisha: I have no idea if this is the right thing to do
                                 return [csv[element["a"]][key], csv[element["b"]][key], csv[element["c"]][key]];
                             });
 
